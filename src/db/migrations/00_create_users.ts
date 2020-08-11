@@ -1,6 +1,7 @@
 import Knex from 'knex'
 
 export interface UserProps {
+  id: number
   first_name: string
   last_name: string
   email: string
