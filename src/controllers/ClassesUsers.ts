@@ -1,4 +1,5 @@
 import { Request, Response } from 'express'
+import bcrypt from 'bcrypt'
 
 import { UserProps } from '../db/migrations/00_create_users'
 import unprocessableEntity from '../utils/unprocessableEntity'
@@ -17,9 +18,10 @@ export default class UsersController {
     }
 
     try {
-      const insertedUser = await db('users').insert(params)
-      return response.status(200).json({
-        id: insertedUser[0],
+      const saltRounds = 11
+      await bcrypt.hash(params.password, saltRounds, async (err, hash) => {
+        const insertedUser = await db('users').insert({ ...params, password: hash })
+        return response.status(200).json({ id: insertedUser[0] })
       })
     } catch (e) {
       console.error(e)
