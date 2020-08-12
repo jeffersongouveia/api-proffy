@@ -1,20 +1,16 @@
 import { Request, Response } from 'express'
 
-import db from '../db/connection'
+import { ScheduleProps } from '../db/migrations/03_create_class_schedule'
 import convertHoursToMinutes from '../utils/convertHoursToMinutes'
-
-interface ScheduleItem {
-  week_day: number
-  from: string
-  to: string
-}
+import unprocessableEntity from '../utils/unprocessableEntity'
+import db from '../db/connection'
 
 export default class ClassesController {
   async index(request: Request, response: Response) {
     const filters = request.query
 
     const subject = filters.subject as string
-    const week_day = filters.week_day as string
+    const weekDay = filters.week_day as string
     const time = filters.time as string
 
     const classes = await db('classes')
@@ -23,8 +19,8 @@ export default class ClassesController {
           .from('class_schedule')
           .whereRaw('`class_schedule`.`class_id` = `classes`.`id`')
           .modify((query) => {
-            if (week_day) {
-              query.whereRaw('`class_schedule`.`week_day` = ??', [Number(week_day)])
+            if (weekDay) {
+              query.whereRaw('`class_schedule`.`week_day` = ??', [Number(weekDay)])
             }
             if (time) {
               const timeInMinutes = convertHoursToMinutes(time)
@@ -38,8 +34,8 @@ export default class ClassesController {
           query.where('classes.subject', '=', subject)
         }
       })
-      .join('users', 'classes.user_id', '=', 'users.id')
-      .select(['classes.*', 'users.*'])
+      .join('teachers', 'classes.teacher_id', '=', 'teachers.id')
+      .select(['classes.*', 'teachers.*'])
 
     return response.json(classes)
   }
@@ -49,13 +45,13 @@ export default class ClassesController {
     const trx = await db.transaction()
 
     try {
-      const insertedUser = await trx('users').insert({ name, avatar, whatsapp, bio })
-      const insertedClass = await trx('classes').insert({ user_id: insertedUser[0], subject, cost })
+      const insertedUser = await trx('teachers').insert({ name, avatar, whatsapp, bio })
+      const insertedClass = await trx('classes').insert({ teacher_id: insertedUser[0], subject, cost })
 
-      const classSchedule = schedule.map((scheduleItem: ScheduleItem) => {
+      const classSchedule = schedule.map((scheduleItem: ScheduleProps) => {
         return {
           class_id: insertedClass[0],
-          week_day: scheduleItem.week_day,
+          week_day: scheduleItem.weekDay,
           from: convertHoursToMinutes(scheduleItem.from),
           to: convertHoursToMinutes(scheduleItem.to),
         }
@@ -68,9 +64,7 @@ export default class ClassesController {
       await trx.rollback()
       console.error(err)
 
-      return response.status(400).json({
-        error: 'Unexpected error while creating new class',
-      })
+      return unprocessableEntity(response)
     }
   }
 }

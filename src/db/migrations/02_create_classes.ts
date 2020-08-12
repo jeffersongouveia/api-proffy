@@ -1,5 +1,11 @@
 import Knex from 'knex'
 
+export interface ClassProps {
+  id: number
+  subject: string
+  cost: number
+}
+
 export async function up(knex: Knex) {
   return knex.schema.createTable('classes', (table) => {
     table.increments('id').primary()

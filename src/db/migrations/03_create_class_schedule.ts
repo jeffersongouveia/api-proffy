@@ -1,5 +1,12 @@
 import Knex from 'knex'
 
+export interface ScheduleProps {
+  id: number
+  weekDay: number
+  from: string
+  to: string
+}
+
 export async function up(knex: Knex) {
   return knex.schema.createTable('class_schedule', (table) => {
     table.increments('id').primary()

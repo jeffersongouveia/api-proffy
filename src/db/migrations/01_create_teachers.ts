@@ -1,5 +1,13 @@
 import Knex from 'knex'
 
+export interface TeacherProps {
+  id: number
+  name: string
+  avatar: string
+  whatsapp: string
+  bio: string
+}
+
 export async function up(knex: Knex) {
   return knex.schema.createTable('teachers', (table) => {
     table.increments('id').primary()
